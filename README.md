@@ -1,12 +1,12 @@
 # Minimal eReader
 
-A lightweight, fast, and open-source document viewer for Windows, built for performance and simplicity.
+A lightweight, blazing fast, portable, and open-source document viewer for Windows, built for performance and simplicity.
 
 ## About The Project
 
 Minimal eReader is built on the principle that a document viewer should be fast, efficient, and resource-friendly.
 
-Built with native C++ using the powerful Qt framework and the highly optimized MuPDF rendering engine, this application starts instantly and handles large documents with ease. It features a clean, modern, dark-themed interface that gets out of your way, allowing you to focus on what matters: the content.
+Built with native C++ using the powerful Qt framework and the highly optimized MuPDF rendering engine (the same backend used by SumatraPDF), this application starts instantly and handles large documents with ease. It features a clean, modern, dark-themed interface that gets out of your way, allowing you to focus on what matters: the content.
 
 Whether you're a student, a researcher, or just someone who values performance, Minimal eReader is designed to be your go-to document viewer.
 
@@ -23,6 +23,7 @@ Whether you're a student, a researcher, or just someone who values performance, 
 * **Save Notes:** Select text to save passages or add comments to a `_NOTES.txt` file automatically generated alongside your document (like you would use with an ereader such as Kindle).
 * **Essential Viewing Tools:** Smooth zooming, page navigation, fit-to-window, and a "Go to Page" function.
 * **Keyboard Shortcuts:** Navigate and control the application efficiently (`Ctrl+F` for Search, `F11` for Fullscreen, Arrow keys for pages, etc.).
+* **Secure:** Minimal dependencies, never calls home, fully open-source. 
 
 ## Getting Started (For Users)
 
