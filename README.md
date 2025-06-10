@@ -38,6 +38,16 @@ You can download the installer `.exe` or the portable `.zip` in the [releases](h
 ![screenshot](https://github.com/deminimis/Minimal-eReader/blob/main/assets/ereader3.png)
 ![screenshot](https://github.com/deminimis/Minimal-eReader/blob/main/assets/ereader4.png)
 
+## What's Next?
+
+- Bookmarks
+- Annotation (the muPDF dependencies are already bundled)
+- Page manipulation (join, rotate, etc.)
+- Multilingual (would be a very fast implementation, but embedding the fonts would make it 40mb+).
+- Custom colors for background/text
+- Export as
+- (You suggest)
+
 ## Building From Source (For Developers)
 
 This section details the prerequisites and steps required to compile the project yourself.
