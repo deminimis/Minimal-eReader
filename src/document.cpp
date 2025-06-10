@@ -1,0 +1,256 @@
+#include "document.h"
+#include <algorithm>
+#include <QDebug>
+#include <QPainter>
+#include <stdexcept>
+#include <QDebug>
+
+
+Document::Document(fz_context* ctx, const QString& filepath)
+    : m_ctx(ctx),
+      m_doc(nullptr),
+      m_filepath(filepath),
+      m_currentPage(0),
+      m_pageCount(0)
+{
+    m_ctx = fz_new_context(nullptr, nullptr, FZ_STORE_DEFAULT);
+    if (!m_ctx) throw std::runtime_error("Failed to create MuPDF context.");
+    fz_try(m_ctx) {
+        fz_register_document_handlers(m_ctx);
+    } fz_catch(m_ctx) {
+        fz_drop_context(m_ctx);
+        m_ctx = nullptr;
+        throw std::runtime_error("Failed to register MuPDF document handlers.");
+    }
+}
+
+Document::~Document() {
+    if (m_doc) fz_drop_document(m_ctx, m_doc);
+}
+
+bool Document::load() {
+    if (!m_ctx || m_filepath.isEmpty()) return false;
+    fz_try(m_ctx) {
+        m_doc = fz_open_document(m_ctx, m_filepath.toStdString().c_str());
+        m_pageCount = fz_count_pages(m_ctx, m_doc);
+    } fz_catch(m_ctx) {
+        qWarning() << "Failed to load document:" << fz_caught_message(m_ctx);
+        return false;
+    }
+    return true;
+}
+
+QImage Document::renderCurrentPage(qreal zoomFactor, bool invertColors) {
+    if (!m_doc || m_currentPage < 0 || m_currentPage >= m_pageCount) return QImage();
+    QImage renderedImage;
+    fz_page* page = nullptr;
+    fz_pixmap* pixmap = nullptr;
+    fz_try(m_ctx) {
+        page = fz_load_page(m_ctx, m_doc, m_currentPage);
+        fz_matrix ctm = fz_scale(zoomFactor, zoomFactor);
+        pixmap = fz_new_pixmap_from_page(m_ctx, page, ctm, fz_device_rgb(m_ctx), 0);
+        if (invertColors) {
+            fz_try(m_ctx) {
+                fz_invert_pixmap(m_ctx, pixmap);
+            } fz_catch(m_ctx) {
+                qWarning() << "Failed to invert pixmap colors";
+            }
+        }
+        renderedImage = QImage(pixmap->samples, pixmap->w, pixmap->h, pixmap->stride, QImage::Format_RGB888).copy();
+    } fz_catch(m_ctx) {
+        qWarning() << "Error rendering page" << m_currentPage << ":" << fz_caught_message(m_ctx);
+        renderedImage = QImage();
+    }
+    if (pixmap) fz_drop_pixmap(m_ctx, pixmap);
+    if (page) fz_drop_page(m_ctx, page);
+    return renderedImage;
+}
+
+QVector<QRectF> Document::getPageCharRects(int pageNum, qreal zoomFactor) const
+{
+    QVector<QRectF> allRects;
+    if (!m_doc || pageNum < 0 || pageNum >= m_pageCount) return allRects;
+
+    fz_page* page = nullptr;
+    fz_stext_page* stext_page = nullptr;
+
+    fz_try(m_ctx) {
+        page = fz_load_page(m_ctx, m_doc, pageNum);
+        stext_page = fz_new_stext_page_from_page(m_ctx, page, NULL);
+        fz_matrix ctm = fz_scale(zoomFactor, zoomFactor);
+
+        for (fz_stext_block* block = stext_page->first_block; block; block = block->next) {
+            if (block->type == FZ_STEXT_BLOCK_TEXT) {
+                for (fz_stext_line* line = block->u.t.first_line; line; line = line->next) {
+                    for (fz_stext_char* ch = line->first_char; ch; ch = ch->next) {
+                        fz_rect char_rect = fz_rect_from_quad(ch->quad);
+                        char_rect = fz_transform_rect(char_rect, ctm);
+                        allRects.append(QRectF(char_rect.x0, char_rect.y0, char_rect.x1 - char_rect.x0, char_rect.y1 - char_rect.y0));
+                    }
+                }
+            }
+        }
+    } fz_catch(m_ctx) {
+        qWarning() << "Failed to extract char rects:" << fz_caught_message(m_ctx);
+    }
+
+    if (stext_page) fz_drop_stext_page(m_ctx, stext_page);
+    if (page) fz_drop_page(m_ctx, page);
+
+    return allRects;
+}
+
+QSizeF Document::getOriginalPageSize(int pageNum) const
+{
+    if (!m_doc || pageNum < 0 || pageNum >= m_pageCount) return QSizeF();
+
+    fz_page* page = nullptr;
+    QSizeF size;
+
+    fz_try(m_ctx) {
+        page = fz_load_page(m_ctx, m_doc, pageNum);
+        fz_rect bounds = fz_bound_page(m_ctx, page);
+        size = QSizeF(bounds.x1 - bounds.x0, bounds.y1 - bounds.y0);
+    } fz_catch(m_ctx) {
+        qWarning() << "Failed to get page bounds:" << fz_caught_message(m_ctx);
+    }
+
+    if (page) fz_drop_page(m_ctx, page);
+    return size;
+}
+
+QString Document::getSelectedText(const QRectF& selectionRect, qreal zoomFactor) const
+{
+    if (!m_doc || m_currentPage < 0 || m_currentPage >= m_pageCount) return QString();
+
+    QString selectedTextStr;
+    fz_page* page = nullptr;
+    fz_stext_page* stext_page = nullptr;
+    char* text = nullptr;
+
+    fz_try(m_ctx)
+    {
+        page = fz_load_page(m_ctx, m_doc, m_currentPage);
+        stext_page = fz_new_stext_page_from_page(m_ctx, page, nullptr);
+
+        fz_matrix scale_matrix = fz_scale(zoomFactor, zoomFactor);
+        fz_matrix inverse_matrix = fz_invert_matrix(scale_matrix);
+
+        fz_point p0 = { (float)selectionRect.left(), (float)selectionRect.top() };
+        fz_point p1 = { (float)selectionRect.right(), (float)selectionRect.bottom() };
+
+        // Convert from screen coords to page coords
+        p0 = fz_transform_point(p0, inverse_matrix);
+        p1 = fz_transform_point(p1, inverse_matrix);
+
+        // Ensure proper direction (top-left to bottom-right)
+        float x0 = std::min(p0.x, p1.x);
+        float y0 = std::min(p0.y, p1.y);
+        float x1 = std::max(p0.x, p1.x);
+        float y1 = std::max(p0.y, p1.y);
+
+        fz_point a = { x0, y0 };
+        fz_point b = { x1, y1 };
+
+        text = fz_copy_selection(m_ctx, stext_page, a, b, 0);
+        selectedTextStr = QString::fromUtf8(text);
+    }
+    fz_catch(m_ctx)
+    {
+        qWarning() << "Failed to get selected text:" << fz_caught_message(m_ctx);
+        selectedTextStr = QString();
+    }
+
+    if (text) fz_free(m_ctx, text);
+    if (stext_page) fz_drop_stext_page(m_ctx, stext_page);
+    if (page) fz_drop_page(m_ctx, page);
+
+    return selectedTextStr;
+}
+
+
+void Document::goToNextPage() {
+    if (m_currentPage < m_pageCount - 1) m_currentPage++;
+}
+
+void Document::goToPrevPage() {
+    if (m_currentPage > 0) m_currentPage--;
+}
+
+void Document::goToPage(int page) {
+    if (page >= 0 && page < m_pageCount) m_currentPage = page;
+}
+
+QVector<SearchResult> Document::searchDocument(const QString& text) const
+{
+    QVector<SearchResult> allResults;
+    if (!m_doc || text.isEmpty()) return allResults;
+
+    QString searchTerm = text.simplified();
+    if (searchTerm.isEmpty()) return allResults;
+
+    // Loop through every page in the document
+    for (int i = 0; i < m_pageCount; ++i) {
+        fz_page* page = nullptr;
+        fz_stext_page* stext_page = nullptr;
+        fz_try(m_ctx) {
+            page = fz_load_page(m_ctx, m_doc, i);
+            stext_page = fz_new_stext_page_from_page(m_ctx, page, nullptr);
+            if (!stext_page) continue;
+
+            QString pageText;
+            QVector<fz_rect> charRects;
+
+            // Extract all characters and their rectangles into two parallel lists
+            for (fz_stext_block* block = stext_page->first_block; block; block = block->next) {
+                if (block->type != FZ_STEXT_BLOCK_TEXT) continue;
+                for (fz_stext_line* line = block->u.t.first_line; line; line = line->next) {
+                    for (fz_stext_char* ch = line->first_char; ch; ch = ch->next) {
+                        pageText.append(QChar(ch->c));
+                        charRects.append(fz_rect_from_quad(ch->quad));
+                    }
+                    pageText.append(' '); // Add space for line breaks
+                    charRects.append(fz_empty_rect);
+                }
+            }
+
+            // Search the extracted text string for the search term
+            int from = 0;
+            while ((from = pageText.indexOf(searchTerm, from, Qt::CaseInsensitive)) != -1) {
+                int matchEnd = from + searchTerm.length();
+
+                // We found a match. Combine the specific rectangles for the matched characters.
+                fz_rect combined_rect = fz_empty_rect;
+                for (int j = from; j < matchEnd; ++j) {
+                    if (!fz_is_empty_rect(charRects[j])) {
+                        combined_rect = fz_is_empty_rect(combined_rect) ? charRects[j] : fz_union_rect(combined_rect, charRects[j]);
+                    }
+                }
+
+                if (!fz_is_empty_rect(combined_rect)) {
+                    // Extract context snippet
+                    int contextStart = std::max(0, from - 20);
+                    int contextEnd = std::min((int)pageText.length(), matchEnd + 20);
+                    QString context = pageText.mid(contextStart, contextEnd - contextStart).replace('\n', ' ').simplified();
+
+                    SearchResult result;
+                    result.pageNum = i;
+                    result.context = "..." + context + "...";
+                    result.location = QRectF(combined_rect.x0, combined_rect.y0, combined_rect.x1 - combined_rect.x0, combined_rect.y1 - combined_rect.y0);
+                    allResults.append(result);
+                }
+                from = matchEnd;
+            }
+        } fz_catch(m_ctx) {
+            // Ignore errors on a single page and continue to the next
+        }
+        if (stext_page) fz_drop_stext_page(m_ctx, stext_page);
+        if (page) fz_drop_page(m_ctx, page);
+    }
+
+    return allResults;
+}
+
+int Document::getCurrentPage() const { return m_currentPage; }
+int Document::getPageCount() const { return m_pageCount; }
+QString Document::getFilepath() const { return m_filepath; }
