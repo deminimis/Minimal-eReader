@@ -22,10 +22,10 @@ Built with native C++ using the powerful Qt framework and the highly optimized M
 * ⭐ Favorites System: Bookmark your frequently used books and access them quickly via a dynamic submenu or standalone dialog.
 * 🧭 Table of Contents Navigation: Dockable ToC panel built from the embedded document outline. Navigate chapters with one click.
 * 📝 Annotation/Notes management:
- * Save passages, comments, and page notes (like on Kindle).
- * Store notes centrally or next to the book for portability.
- * Interactive panel to view, edit, and delete notes.
- * Automatically highlights saved passages on selection.  
+  * Save passages, comments, and page notes (like on Kindle).
+  * Store notes centrally or next to the book for portability.
+  * Interactive panel to view, edit, and delete notes.
+  * Automatically highlights saved passages on selection.  
 * 🔍 Powerful Search: Full-document search with all results shown in a floating panel, complete with context snippets.
 * 🎯 Precise Highlighting: All matches highlighted on the page, with special styling for the selected result.
 * 🧰 Essential Viewing Tools: Smooth zoom, fit-to-window, “Go to Page,” and fast navigation controls. 
