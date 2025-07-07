@@ -57,18 +57,26 @@ void ViewerWidget::scrollToBottom()
     }
 }
 
-void ViewerWidget::setHighlight(const QRectF& highlightRect, qreal zoomFactor)
+void ViewerWidget::setHighlights(const QVector<QRectF>& allRects, const QRectF& currentRect, qreal zoomFactor)
 {
-    // Scale the rectangle from page coordinates to zoomed-image coordinates
-    QRectF scaledRect = QRectF(
-        highlightRect.x() * zoomFactor,
-        highlightRect.y() * zoomFactor,
-        highlightRect.width() * zoomFactor,
-        highlightRect.height() * zoomFactor
+    QVector<QRectF> scaledAllRects;
+    scaledAllRects.reserve(allRects.size());
+    for(const QRectF& rect : allRects) {
+        scaledAllRects.append(QRectF(
+            rect.x() * zoomFactor, rect.y() * zoomFactor,
+            rect.width() * zoomFactor, rect.height() * zoomFactor
+            ));
+    }
+
+    QRectF scaledCurrentRect = QRectF(
+        currentRect.x() * zoomFactor,
+        currentRect.y() * zoomFactor,
+        currentRect.width() * zoomFactor,
+        currentRect.height() * zoomFactor
         );
 
-    m_imageLabel->setSearchHighlight(scaledRect);
-    ensureVisible(scaledRect.center().x(), scaledRect.center().y(), 100, 100);
+    m_imageLabel->setSearchHighlights(scaledAllRects, scaledCurrentRect);
+    ensureVisible(scaledCurrentRect.center().x(), scaledCurrentRect.center().y(), 100, 100);
 }
 
 void ViewerWidget::clearHighlight()

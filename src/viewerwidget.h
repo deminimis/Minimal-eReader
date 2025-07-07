@@ -19,7 +19,7 @@ public:
     void scrollToBottom();
     bool hasSelection() const;
 
-    void setHighlight(const QRectF& highlightRect, qreal zoomFactor);
+    void setHighlights(const QVector<QRectF>& allRects, const QRectF& currentRect, qreal zoomFactor);
     void clearHighlight();
 
 signals:

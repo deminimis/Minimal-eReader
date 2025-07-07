@@ -19,8 +19,7 @@ public:
     void setCharRects(const QVector<QRectF>& charRects);
     bool hasSelection() const;
 
-    // New methods for search highlighting
-    void setSearchHighlight(const QRectF& rect);
+    void setSearchHighlights(const QVector<QRectF>& allRects, const QRectF& currentRect);
     void clearSearchHighlight();
 
 signals:
@@ -41,8 +40,9 @@ private:
     bool m_isSelecting;
 
     QVector<QRectF> m_allCharRects;
-    QVector<QRectF> m_highlightRects; // For user text selection
-    QRectF m_searchHighlight;      // For search result highlight
+    QVector<QRectF> m_highlightRects;
+    QVector<QRectF> m_searchHighlights;
+    QRectF          m_currentSearchHighlight;
 
     int m_startIndex;
     int m_endIndex;

@@ -6,9 +6,11 @@
 #include <QTimer>
 #include <QDockWidget>
 #include <QListWidget>
+#include <QCache>
+#include <QImage>
 
 #include "settings.h"
-#include "document.h" // Includes SearchResult struct
+#include "document.h"
 #include <mupdf/fitz.h>
 
 class QTabWidget;
@@ -21,10 +23,16 @@ class QCloseEvent;
 class QMouseEvent;
 class QShowEvent;
 class QLabel;
-class QLineEdit; // Forward declaration
+class QLineEdit;
+class QTreeWidget;
+class QTreeWidgetItem;
+class QListWidgetItem;
+class QTextEdit;
+class QPushButton;
+
+struct Note;
 
 class ViewerWidget;
-class SearchPanel;
 
 class MainWindow : public QMainWindow
 {
@@ -46,6 +54,16 @@ protected:
 private slots:
     void openFile();
     void openRecentFile();
+    void openFavoriteFile();
+    void addCurrentFileToFavorites();
+    void manageFavorites();
+    void showTableOfContents();
+    void onTocItemClicked(QTreeWidgetItem* item, int column);
+    void setNotesDirectory();
+    void showNotes();
+    void onNoteClicked(QListWidgetItem* item);
+    void deleteSelectedNote();
+    void saveNoteChanges();
     void onTabChanged(int index);
     void onTabCloseRequested(int index);
     void closeCurrentTab();
@@ -58,6 +76,7 @@ private slots:
     void zoomOut();
     void fitToWindow();
     void promptForPageNumber();
+    void promptForZoomLevel();
     void toggleFullScreen();
 
     void onTextSelected(const QRect& rect);
@@ -72,7 +91,6 @@ private slots:
     void onSavePageNoteShortcut();
     void restoreLastTabs();
 
-    // New search system slots
     void executeSearch(const QString& text);
     void onSearchResultClicked(QListWidgetItem* item);
     void onSearchResultChanged(QListWidgetItem* current, QListWidgetItem* previous);
@@ -85,27 +103,46 @@ private:
     void createActions();
     void createCustomTitleBar();
     void createSearchDockWidget();
+    void createTocDockWidget();
+    void createNotesDockWidget();
+    void populateToc();
+    void populateNotes();
+    QVector<Note> parseNotesFile(const QString& notesPath) const;
     void setupTheme();
     void updateStatusBar();
+    void updateStatusBarActions();
     void loadAppSettings();
     void openFileFromPath(const QString &filePath, int pageNum = 0);
     void updateRecentFilesMenu();
+    void updateFavoritesMenu();
     void clearSelectionState();
     void updateResizeCursor(const QPoint& pos);
+    QString findNotesPathFor(const QString& bookPath) const;
+    QString getNewNotesPathFor(const QString& bookPath) const;
 
     QWidget* m_customTitleBar;
     QToolButton* m_menuButton;
     QMenu* m_mainMenu;
     QMenu* m_recentFilesMenu;
+    QMenu* m_favoritesMenu;
     QTabWidget* m_tabWidget;
     QStatusBar* m_statusBar;
     QLabel* m_pageLabel;
     QLabel* m_zoomLabel;
+    QToolButton* m_prevPageButton;
+    QToolButton* m_nextPageButton;
 
-    // Search UI Elements
+
     QDockWidget* m_searchDockWidget;
     QListWidget* m_searchResultsList;
     QLineEdit* m_searchInput;
+    QDockWidget* m_tocDockWidget;
+    QTreeWidget* m_tocTreeWidget;
+    QDockWidget* m_notesDockWidget;
+    QListWidget* m_notesListWidget;
+    QTextEdit* m_noteEditor;
+    QPushButton* m_saveNoteButton;
+    QListWidgetItem* m_currentNoteItem;
 
     QAction* m_openAction;
     QAction* m_copyAction;
@@ -113,10 +150,13 @@ private:
     QAction* m_goToPageAction;
     QAction* m_invertColorsAction;
     QAction* m_toggleStatusBarAction;
+    QAction* m_tocAction;
+    QAction* m_notesAction;
     QAction* m_exitAction;
 
     QList<Document*> m_documents;
     AppSettings m_settings;
+    QCache<QString, QImage> m_pageCache;
     QRect m_lastSelectionRect;
     QRect m_resizeStartGeometry;
 

@@ -8,13 +8,18 @@
 #include <QRectF>
 #include <QVector>
 
-// A structure to hold all information about a single search result
 struct SearchResult {
     int pageNum;
-    QRectF location; // The location of the result in original, un-zoomed page coordinates
-    QString context; // A snippet of text around the result
+    QRectF location;
+    QString context;
 };
-Q_DECLARE_METATYPE(SearchResult) // Allows us to store this struct in a QVariant
+Q_DECLARE_METATYPE(SearchResult)
+
+struct TocItem {
+    QString title;
+    int pageNum;
+    QVector<TocItem> children;
+};
 
 class Document {
 public:
@@ -38,6 +43,7 @@ public:
     QVector<QRectF> getPageCharRects(int pageNum, qreal zoomFactor) const;
     QVector<SearchResult> searchDocument(const QString& text) const;
     QSizeF getOriginalPageSize(int pageNum) const;
+    QVector<TocItem> getTableOfContents() const;
 
 private:
     fz_context* m_ctx;

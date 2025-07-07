@@ -7,7 +7,7 @@
 #include <utility>
 
 SelectionLabel::SelectionLabel(QWidget* parent)
-    : QLabel(parent), m_isSelecting(false), m_searchHighlight(), m_startIndex(-1), m_endIndex(-1)
+    : QLabel(parent), m_isSelecting(false), m_startIndex(-1), m_endIndex(-1)
 {
     setCursor(Qt::IBeamCursor);
 }
@@ -98,20 +98,25 @@ void SelectionLabel::mouseReleaseEvent(QMouseEvent* /*event*/)
 
 void SelectionLabel::paintEvent(QPaintEvent* event)
 {
-    // Let the base QLabel draw the page image first
     QLabel::paintEvent(event);
 
     QPainter painter(this);
     painter.setRenderHint(QPainter::Antialiasing);
 
-    // Draw the search result highlight (orange/red)
-    if (!m_searchHighlight.isNull()) {
-        painter.setBrush(QColor(255, 140, 0, 90));
-        painter.setPen(QPen(QColor(220, 20, 60), 2));
-        painter.drawRect(m_searchHighlight);
+    if (!m_searchHighlights.isEmpty()) {
+        painter.setBrush(QColor(255, 255, 0, 70));
+        painter.setPen(Qt::NoPen);
+        for(const QRectF& rect : m_searchHighlights) {
+            painter.drawRect(rect);
+        }
     }
 
-    // Draw the user's click-and-drag selection highlight (blue)
+    if (!m_currentSearchHighlight.isNull()) {
+        painter.setBrush(QColor(255, 140, 0, 90));
+        painter.setPen(QPen(QColor(220, 20, 60), 2));
+        painter.drawRect(m_currentSearchHighlight);
+    }
+
     if (!m_highlightRects.isEmpty()) {
         painter.setBrush(QColor(0, 100, 255, 70));
         painter.setPen(Qt::NoPen);
@@ -121,16 +126,18 @@ void SelectionLabel::paintEvent(QPaintEvent* event)
     }
 }
 
-void SelectionLabel::setSearchHighlight(const QRectF& rect)
+void SelectionLabel::setSearchHighlights(const QVector<QRectF>& allRects, const QRectF& currentRect)
 {
-    m_searchHighlight = rect;
-    update(); // Trigger a repaint
+    m_searchHighlights = allRects;
+    m_currentSearchHighlight = currentRect;
+    update();
 }
 
 void SelectionLabel::clearSearchHighlight()
 {
-    if (!m_searchHighlight.isNull()) {
-        m_searchHighlight = QRectF();
-        update(); // Trigger a repaint
+    if (!m_searchHighlights.isEmpty() || !m_currentSearchHighlight.isNull()) {
+        m_searchHighlights.clear();
+        m_currentSearchHighlight = QRectF();
+        update();
     }
 }

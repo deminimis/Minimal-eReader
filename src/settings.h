@@ -12,12 +12,17 @@ class AppSettings
 public:
     void load();
     void save();
+
     bool isStatusBarVisible;
     qreal zoomFactor;
     bool invertPageColors;
-    QStringList recentFiles;
-    QVariantList lastOpenTabs;
+
     QSize windowSize;
     QPoint windowPosition;
     bool isMaximized;
+
+    QStringList recentFiles;
+    QVariantList lastOpenTabs;
+    QStringList favoriteFiles;
+    QString notesDirectory;
 };

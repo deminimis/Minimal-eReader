@@ -3,7 +3,7 @@
 #include <QApplication>
 #include <QScreen>
 #include <QColor>
-#include <QCoreApplication> // For applicationDirPath()
+#include <QCoreApplication>
 
 QRect defaultGeometry() {
     return QGuiApplication::primaryScreen()->availableGeometry();
@@ -11,7 +11,6 @@ QRect defaultGeometry() {
 
 void AppSettings::load()
 {
-    // Use a local settings.ini file next to the executable
     QString settingsPath = QCoreApplication::applicationDirPath() + "/settings.ini";
     QSettings settings(settingsPath, QSettings::IniFormat);
 
@@ -23,11 +22,12 @@ void AppSettings::load()
     windowPosition = settings.value("Window/position", defaultGeometry().center() - QPoint(windowSize.width()/2, windowSize.height()/2)).toPoint();
     recentFiles = settings.value("Session/recentFiles").toStringList();
     lastOpenTabs = settings.value("Session/lastOpenTabs").toList();
+    favoriteFiles = settings.value("Session/favoriteFiles").toStringList();
+    notesDirectory = settings.value("General/notesDirectory", "").toString();
 }
 
 void AppSettings::save()
 {
-    // Use a local settings.ini file next to the executable
     QString settingsPath = QCoreApplication::applicationDirPath() + "/settings.ini";
     QSettings settings(settingsPath, QSettings::IniFormat);
 
@@ -36,6 +36,8 @@ void AppSettings::save()
     settings.setValue("View/invertPageColors", invertPageColors);
     settings.setValue("Session/recentFiles", recentFiles);
     settings.setValue("Session/lastOpenTabs", lastOpenTabs);
+    settings.setValue("Session/favoriteFiles", favoriteFiles);
+    settings.setValue("General/notesDirectory", notesDirectory);
     settings.setValue("Window/isMaximized", isMaximized);
     if (!isMaximized) {
         settings.setValue("Window/size", windowSize);

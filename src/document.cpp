@@ -2,26 +2,36 @@
 #include <algorithm>
 #include <QDebug>
 #include <QPainter>
-#include <stdexcept>
-#include <QDebug>
 
+void traverseOutline(fz_context* ctx, fz_document* doc, fz_outline* outline, QVector<TocItem>& items)
+{
+    for (fz_outline* entry = outline; entry; entry = entry->next) {
+        int pageNum = -1;
+        if (entry->uri) {
+            fz_location loc = fz_resolve_link(ctx, doc, entry->uri, nullptr, nullptr);
+            pageNum = fz_page_number_from_location(ctx, doc, loc);
+        }
+
+        if (pageNum != -1) {
+            TocItem tocItem;
+            tocItem.title = QString::fromUtf8(entry->title ? entry->title : "");
+            tocItem.pageNum = pageNum;
+
+            if (entry->down) {
+                traverseOutline(ctx, doc, entry->down, tocItem.children);
+            }
+            items.append(tocItem);
+        }
+    }
+}
 
 Document::Document(fz_context* ctx, const QString& filepath)
     : m_ctx(ctx),
-      m_doc(nullptr),
-      m_filepath(filepath),
-      m_currentPage(0),
-      m_pageCount(0)
+    m_doc(nullptr),
+    m_filepath(filepath),
+    m_currentPage(0),
+    m_pageCount(0)
 {
-    m_ctx = fz_new_context(nullptr, nullptr, FZ_STORE_DEFAULT);
-    if (!m_ctx) throw std::runtime_error("Failed to create MuPDF context.");
-    fz_try(m_ctx) {
-        fz_register_document_handlers(m_ctx);
-    } fz_catch(m_ctx) {
-        fz_drop_context(m_ctx);
-        m_ctx = nullptr;
-        throw std::runtime_error("Failed to register MuPDF document handlers.");
-    }
 }
 
 Document::~Document() {
@@ -139,11 +149,9 @@ QString Document::getSelectedText(const QRectF& selectionRect, qreal zoomFactor)
         fz_point p0 = { (float)selectionRect.left(), (float)selectionRect.top() };
         fz_point p1 = { (float)selectionRect.right(), (float)selectionRect.bottom() };
 
-        // Convert from screen coords to page coords
         p0 = fz_transform_point(p0, inverse_matrix);
         p1 = fz_transform_point(p1, inverse_matrix);
 
-        // Ensure proper direction (top-left to bottom-right)
         float x0 = std::min(p0.x, p1.x);
         float y0 = std::min(p0.y, p1.y);
         float x1 = std::max(p0.x, p1.x);
@@ -168,7 +176,6 @@ QString Document::getSelectedText(const QRectF& selectionRect, qreal zoomFactor)
     return selectedTextStr;
 }
 
-
 void Document::goToNextPage() {
     if (m_currentPage < m_pageCount - 1) m_currentPage++;
 }
@@ -186,10 +193,9 @@ QVector<SearchResult> Document::searchDocument(const QString& text) const
     QVector<SearchResult> allResults;
     if (!m_doc || text.isEmpty()) return allResults;
 
-    QString searchTerm = text.simplified();
+    const QString searchTerm = text.simplified();
     if (searchTerm.isEmpty()) return allResults;
 
-    // Loop through every page in the document
     for (int i = 0; i < m_pageCount; ++i) {
         fz_page* page = nullptr;
         fz_stext_page* stext_page = nullptr;
@@ -201,7 +207,6 @@ QVector<SearchResult> Document::searchDocument(const QString& text) const
             QString pageText;
             QVector<fz_rect> charRects;
 
-            // Extract all characters and their rectangles into two parallel lists
             for (fz_stext_block* block = stext_page->first_block; block; block = block->next) {
                 if (block->type != FZ_STEXT_BLOCK_TEXT) continue;
                 for (fz_stext_line* line = block->u.t.first_line; line; line = line->next) {
@@ -209,17 +214,15 @@ QVector<SearchResult> Document::searchDocument(const QString& text) const
                         pageText.append(QChar(ch->c));
                         charRects.append(fz_rect_from_quad(ch->quad));
                     }
-                    pageText.append(' '); // Add space for line breaks
+                    pageText.append(' ');
                     charRects.append(fz_empty_rect);
                 }
             }
 
-            // Search the extracted text string for the search term
             int from = 0;
             while ((from = pageText.indexOf(searchTerm, from, Qt::CaseInsensitive)) != -1) {
                 int matchEnd = from + searchTerm.length();
 
-                // We found a match. Combine the specific rectangles for the matched characters.
                 fz_rect combined_rect = fz_empty_rect;
                 for (int j = from; j < matchEnd; ++j) {
                     if (!fz_is_empty_rect(charRects[j])) {
@@ -228,7 +231,6 @@ QVector<SearchResult> Document::searchDocument(const QString& text) const
                 }
 
                 if (!fz_is_empty_rect(combined_rect)) {
-                    // Extract context snippet
                     int contextStart = std::max(0, from - 20);
                     int contextEnd = std::min((int)pageText.length(), matchEnd + 20);
                     QString context = pageText.mid(contextStart, contextEnd - contextStart).replace('\n', ' ').simplified();
@@ -242,7 +244,6 @@ QVector<SearchResult> Document::searchDocument(const QString& text) const
                 from = matchEnd;
             }
         } fz_catch(m_ctx) {
-            // Ignore errors on a single page and continue to the next
         }
         if (stext_page) fz_drop_stext_page(m_ctx, stext_page);
         if (page) fz_drop_page(m_ctx, page);
@@ -250,6 +251,28 @@ QVector<SearchResult> Document::searchDocument(const QString& text) const
 
     return allResults;
 }
+
+QVector<TocItem> Document::getTableOfContents() const
+{
+    QVector<TocItem> toc;
+    if (!m_doc) return toc;
+
+    fz_outline *outline = nullptr;
+    fz_try(m_ctx) {
+        outline = fz_load_outline(m_ctx, m_doc);
+        if (outline) {
+            traverseOutline(m_ctx, m_doc, outline, toc);
+        }
+    } fz_catch(m_ctx) {
+        qWarning() << "Failed to load table of contents:" << fz_caught_message(m_ctx);
+    }
+
+    if (outline) {
+        fz_drop_outline(m_ctx, outline);
+    }
+    return toc;
+}
+
 
 int Document::getCurrentPage() const { return m_currentPage; }
 int Document::getPageCount() const { return m_pageCount; }
