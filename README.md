@@ -2,6 +2,10 @@
 
 A lightweight, blazing fast, portable, and open-source document viewer and annotator for Windows, built for performance and simplicity.
 
+## 💾 Download the latest version [here](https://github.com/deminimis/Minimal-eReader/releases).
+You can download the installer `.exe` or the portable `.zip`
+
+
 ## About The Project
 
 Minimal eReader is built on the principle that a document viewer should be fast, efficient, and resource-friendly. 
@@ -33,9 +37,6 @@ Built with native C++ using the powerful Qt framework and the highly optimized M
 * ⌨️ Keyboard Shortcuts: Efficient controls (Ctrl+F for search, F11 for fullscreen, Ctrl+Shift+T for ToC, etc.).
 * 🔐 Secure & Private: No telemetry, minimal dependencies, fully open-source.
 
-## Getting Started (For Users)
-
-You can download the installer `.exe` or the portable `.zip` in the [releases](https://github.com/deminimis/Minimal-eReader/releases). 
 
 
 ### Screenshots
