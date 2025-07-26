@@ -49,10 +49,9 @@ Built with native C++ using the powerful Qt framework and the highly optimized M
 
 ## What's Next?
 
-- Bookmarks
-- Annotation (the muPDF dependencies are already bundled)
-- Page manipulation (join, rotate, etc.)
-- Multilingual (would be a very fast implementation, but embedding the fonts would make it 40mb+).
+- ~~Bookmarks~~
+- Page manipulation. For compression and basic manipulation, see [MinimalPDF Compress](https://github.com/deminimis/minimalpdfcompress)
+- Multilingual (Easy, but embedding the fonts would make the program much larger).
 - Custom colors for background/text
 - Export as
 - (You suggest)
