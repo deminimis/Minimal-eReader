@@ -30,14 +30,39 @@ bool SelectionLabel::hasSelection() const
     return !m_highlightRects.isEmpty();
 }
 
-int SelectionLabel::charIndexAt(const QPoint& pos)
+int SelectionLabel::charIndexAt(const QPoint& pos, qreal horizontalBuffer) const
 {
     for (int i = 0; i < m_allCharRects.size(); ++i) {
         if (m_allCharRects[i].contains(pos)) {
             return i;
         }
     }
-    return -1;
+
+    int nearestIndex = -1;
+    qreal nearestDistance = horizontalBuffer + 1.0;
+
+    for (int i = 0; i < m_allCharRects.size(); ++i) {
+        const QRectF& rect = m_allCharRects[i];
+
+        if (pos.y() < rect.top() || pos.y() > rect.bottom()) {
+            continue;
+        }
+
+        qreal distance = 0.0;
+
+        if (pos.x() < rect.left()) {
+            distance = rect.left() - pos.x();
+        } else if (pos.x() > rect.right()) {
+            distance = pos.x() - rect.right();
+        }
+
+        if (distance <= horizontalBuffer && distance < nearestDistance) {
+            nearestDistance = distance;
+            nearestIndex = i;
+        }
+    }
+
+    return nearestIndex;
 }
 
 void SelectionLabel::updateHighlightRects()

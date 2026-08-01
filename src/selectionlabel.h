@@ -32,7 +32,7 @@ protected:
     void paintEvent(QPaintEvent* event) override;
 
 private:
-    int charIndexAt(const QPoint& pos);
+    int charIndexAt(const QPoint& pos, qreal horizontalBuffer = 96.0) const;
     void updateHighlightRects();
 
     QPoint m_origin;

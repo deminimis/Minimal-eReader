@@ -27,6 +27,8 @@ MainWindow::MainWindow(QWidget *parent)
     m_goToPageAction(nullptr),
     m_invertColorsAction(nullptr),
     m_toggleStatusBarAction(nullptr),
+    m_darkThemeAction(nullptr),
+    m_lightThemeAction(nullptr),
     m_exitAction(nullptr),
     m_resizeStartGeometry(),
     m_isDragging(false),
@@ -71,11 +73,15 @@ MainWindow::~MainWindow()
 void MainWindow::loadAppSettings()
 {
     m_settings.load();
+    setupTheme();
+
     resize(m_settings.windowSize);
     move(m_settings.windowPosition);
+
     m_statusBar->setVisible(m_settings.isStatusBarVisible);
     m_toggleStatusBarAction->setChecked(m_settings.isStatusBarVisible);
     m_invertColorsAction->setChecked(m_settings.invertPageColors);
+
     updateFavoritesMenu();
 
     if (m_settings.isMaximized) {

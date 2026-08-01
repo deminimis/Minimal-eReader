@@ -16,7 +16,7 @@ public:
     bool isStatusBarVisible;
     qreal zoomFactor;
     bool invertPageColors;
-
+    QString theme = QStringLiteral("dark");
     QSize windowSize;
     QPoint windowPosition;
     bool isMaximized;

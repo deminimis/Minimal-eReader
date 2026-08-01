@@ -42,6 +42,8 @@ public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
 
+    void openFileFromPath(const QString &filePath, int pageNum = 0);
+
 protected:
     bool eventFilter(QObject* obj, QEvent* event) override;
     void wheelEvent(QWheelEvent *event) override;
@@ -98,6 +100,7 @@ private slots:
     void findPrevSearchResult();
     void clearSearch();
 
+
 private:
     void setupUI();
     void createActions();
@@ -109,10 +112,10 @@ private:
     void populateNotes();
     QVector<Note> parseNotesFile(const QString& notesPath) const;
     void setupTheme();
+    void setTheme(const QString& theme);
     void updateStatusBar();
     void updateStatusBarActions();
     void loadAppSettings();
-    void openFileFromPath(const QString &filePath, int pageNum = 0);
     void updateRecentFilesMenu();
     void updateFavoritesMenu();
     void clearSelectionState();
@@ -150,6 +153,8 @@ private:
     QAction* m_goToPageAction;
     QAction* m_invertColorsAction;
     QAction* m_toggleStatusBarAction;
+    QAction* m_darkThemeAction;
+    QAction* m_lightThemeAction;
     QAction* m_tocAction;
     QAction* m_notesAction;
     QAction* m_exitAction;

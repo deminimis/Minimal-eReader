@@ -17,6 +17,13 @@ void AppSettings::load()
     isStatusBarVisible = settings.value("UI/isStatusBarVisible", true).toBool();
     zoomFactor = settings.value("View/zoomFactor", 1.0).toReal();
     invertPageColors = settings.value("View/invertPageColors", false).toBool();
+
+    theme = settings.value("UI/theme", QStringLiteral("dark")).toString().toLower();
+    if (theme != QStringLiteral("dark") &&
+        theme != QStringLiteral("light")) {
+        theme = QStringLiteral("dark");
+    }
+
     isMaximized = settings.value("Window/isMaximized", false).toBool();
     windowSize = settings.value("Window/size", defaultGeometry().size() * 0.8).toSize();
     windowPosition = settings.value("Window/position", defaultGeometry().center() - QPoint(windowSize.width()/2, windowSize.height()/2)).toPoint();
@@ -32,6 +39,7 @@ void AppSettings::save()
     QSettings settings(settingsPath, QSettings::IniFormat);
 
     settings.setValue("UI/isStatusBarVisible", isStatusBarVisible);
+    settings.setValue("UI/theme", theme);
     settings.setValue("View/zoomFactor", zoomFactor);
     settings.setValue("View/invertPageColors", invertPageColors);
     settings.setValue("Session/recentFiles", recentFiles);
